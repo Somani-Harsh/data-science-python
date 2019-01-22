@@ -13,12 +13,13 @@
 		console.log("hello")
 		$.ajax({
 			type: "GET",
+			dataType: 'json',
 			url: "https://affiliate-api.flipkart.net/affiliate/api/somanihrs.json",
   			headers: {
-		        "Fk-Affiliate-Id":"somanihrs",
+		        	"Fk-Affiliate-Id":"somanihrs",
 				"Fk-Affiliate-Token":"c3cb4f9d97fc45f38a4066418ae63cbf"
-		    }
-
+		    	},
+			contentType: 'application/json; charset=utf-8',
 		}).done(function(result) {
   			console.log(result)
 		})
