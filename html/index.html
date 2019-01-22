@@ -8,22 +8,25 @@
 <body>
 	
 <script type="text/javascript">
-	$(document).ready(function (){
-		// body...
-		console.log("hello")
+		$(document).ready(function (){
 		$.ajax({
-			type: "GET",
-			dataType: 'json',
-			url: "https://affiliate-api.flipkart.net/affiliate/api/somanihrs.json",
-  			headers: {
-		        	"Fk-Affiliate-Id":"somanihrs",
-				"Fk-Affiliate-Token":"c3cb4f9d97fc45f38a4066418ae63cbf"
-		    	},
-			contentType: 'application/json; charset=utf-8',
-		}).done(function(result) {
-  			console.log(result)
-		})
-	})
+        type: 'GET',
+        url: "https://affiliate-api.flipkart.net/affiliate/offers/v1/all/json",
+        dataType: "json",
+        xhrFields: {
+            withCredentials: false
+        },
+        headers: {
+            "Fk-Affiliate-Id":"somanihrs",
+			"Fk-Affiliate-Token":"996874db701f47f780e804bd5e7db2d2",
+            'Content-Type': 'application/json'
+        },
+        success: function(data) {
+            for (i = 0; i < data.allOffersList.length; i++)
+                alert(data.allOffersList[i].title);
+        },
+    });
+})
 </script>
 
 <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
