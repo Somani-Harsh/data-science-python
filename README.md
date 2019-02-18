@@ -1,2 +1,1 @@
-# trial2
-Python Django
+# Data Science pratice work using python language
