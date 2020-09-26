@@ -1,0 +1,1141 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "name": "Intent Classification",
+      "provenance": [],
+      "collapsed_sections": [],
+      "authorship_tag": "ABX9TyPFVko3psFktpmYZctTP2hM",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "accelerator": "GPU"
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/Somani-Harsh/data-science-python/blob/master/Entity%20Classification%20on%20ATIS%20Dataset\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "nY_BJMpAu2kD",
+        "outputId": "a3708713-4698-4394-90da-d23beb5ea343",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 34
+        }
+      },
+      "source": [
+        "from google.colab import drive\n",
+        "\n",
+        "drive.mount('/content/drive')"
+      ],
+      "execution_count": 2,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Mounted at /content/drive\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "FbFNl8rB5L3l",
+        "outputId": "9beaba66-1a87-4d07-ddc7-5b9ae4ce0a0e",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 768
+        }
+      },
+      "source": [
+        "!pip install tf2crf"
+      ],
+      "execution_count": 4,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Collecting tf2crf\n",
+            "  Downloading https://files.pythonhosted.org/packages/15/13/c2a0aca2107d932a10447920aa4c8e61f8a6111b47119fda5c2d0ccc7131/tf2crf-0.1.19-py2.py3-none-any.whl\n",
+            "Requirement already satisfied: tensorflow-addons>=0.8.2 in /usr/local/lib/python3.6/dist-packages (from tf2crf) (0.8.3)\n",
+            "Requirement already satisfied: tensorflow>=2.1.0 in /usr/local/lib/python3.6/dist-packages (from tf2crf) (2.3.0)\n",
+            "Requirement already satisfied: typeguard in /usr/local/lib/python3.6/dist-packages (from tensorflow-addons>=0.8.2->tf2crf) (2.7.1)\n",
+            "Requirement already satisfied: wrapt>=1.11.1 in /usr/local/lib/python3.6/dist-packages (from tensorflow>=2.1.0->tf2crf) (1.12.1)\n",
+            "Requirement already satisfied: google-pasta>=0.1.8 in /usr/local/lib/python3.6/dist-packages (from tensorflow>=2.1.0->tf2crf) (0.2.0)\n",
+            "Requirement already satisfied: absl-py>=0.7.0 in /usr/local/lib/python3.6/dist-packages (from tensorflow>=2.1.0->tf2crf) (0.10.0)\n",
+            "Requirement already satisfied: numpy<1.19.0,>=1.16.0 in /usr/local/lib/python3.6/dist-packages (from tensorflow>=2.1.0->tf2crf) (1.18.5)\n",
+            "Requirement already satisfied: protobuf>=3.9.2 in /usr/local/lib/python3.6/dist-packages (from tensorflow>=2.1.0->tf2crf) (3.12.4)\n",
+            "Requirement already satisfied: tensorflow-estimator<2.4.0,>=2.3.0 in /usr/local/lib/python3.6/dist-packages (from tensorflow>=2.1.0->tf2crf) (2.3.0)\n",
+            "Requirement already satisfied: six>=1.12.0 in /usr/local/lib/python3.6/dist-packages (from tensorflow>=2.1.0->tf2crf) (1.15.0)\n",
+            "Requirement already satisfied: scipy==1.4.1 in /usr/local/lib/python3.6/dist-packages (from tensorflow>=2.1.0->tf2crf) (1.4.1)\n",
+            "Requirement already satisfied: grpcio>=1.8.6 in /usr/local/lib/python3.6/dist-packages (from tensorflow>=2.1.0->tf2crf) (1.32.0)\n",
+            "Requirement already satisfied: wheel>=0.26 in /usr/local/lib/python3.6/dist-packages (from tensorflow>=2.1.0->tf2crf) (0.35.1)\n",
+            "Requirement already satisfied: gast==0.3.3 in /usr/local/lib/python3.6/dist-packages (from tensorflow>=2.1.0->tf2crf) (0.3.3)\n",
+            "Requirement already satisfied: tensorboard<3,>=2.3.0 in /usr/local/lib/python3.6/dist-packages (from tensorflow>=2.1.0->tf2crf) (2.3.0)\n",
+            "Requirement already satisfied: opt-einsum>=2.3.2 in /usr/local/lib/python3.6/dist-packages (from tensorflow>=2.1.0->tf2crf) (3.3.0)\n",
+            "Requirement already satisfied: keras-preprocessing<1.2,>=1.1.1 in /usr/local/lib/python3.6/dist-packages (from tensorflow>=2.1.0->tf2crf) (1.1.2)\n",
+            "Requirement already satisfied: h5py<2.11.0,>=2.10.0 in /usr/local/lib/python3.6/dist-packages (from tensorflow>=2.1.0->tf2crf) (2.10.0)\n",
+            "Requirement already satisfied: termcolor>=1.1.0 in /usr/local/lib/python3.6/dist-packages (from tensorflow>=2.1.0->tf2crf) (1.1.0)\n",
+            "Requirement already satisfied: astunparse==1.6.3 in /usr/local/lib/python3.6/dist-packages (from tensorflow>=2.1.0->tf2crf) (1.6.3)\n",
+            "Requirement already satisfied: setuptools in /usr/local/lib/python3.6/dist-packages (from protobuf>=3.9.2->tensorflow>=2.1.0->tf2crf) (50.3.0)\n",
+            "Requirement already satisfied: werkzeug>=0.11.15 in /usr/local/lib/python3.6/dist-packages (from tensorboard<3,>=2.3.0->tensorflow>=2.1.0->tf2crf) (1.0.1)\n",
+            "Requirement already satisfied: google-auth<2,>=1.6.3 in /usr/local/lib/python3.6/dist-packages (from tensorboard<3,>=2.3.0->tensorflow>=2.1.0->tf2crf) (1.17.2)\n",
+            "Requirement already satisfied: tensorboard-plugin-wit>=1.6.0 in /usr/local/lib/python3.6/dist-packages (from tensorboard<3,>=2.3.0->tensorflow>=2.1.0->tf2crf) (1.7.0)\n",
+            "Requirement already satisfied: requests<3,>=2.21.0 in /usr/local/lib/python3.6/dist-packages (from tensorboard<3,>=2.3.0->tensorflow>=2.1.0->tf2crf) (2.23.0)\n",
+            "Requirement already satisfied: markdown>=2.6.8 in /usr/local/lib/python3.6/dist-packages (from tensorboard<3,>=2.3.0->tensorflow>=2.1.0->tf2crf) (3.2.2)\n",
+            "Requirement already satisfied: google-auth-oauthlib<0.5,>=0.4.1 in /usr/local/lib/python3.6/dist-packages (from tensorboard<3,>=2.3.0->tensorflow>=2.1.0->tf2crf) (0.4.1)\n",
+            "Requirement already satisfied: pyasn1-modules>=0.2.1 in /usr/local/lib/python3.6/dist-packages (from google-auth<2,>=1.6.3->tensorboard<3,>=2.3.0->tensorflow>=2.1.0->tf2crf) (0.2.8)\n",
+            "Requirement already satisfied: cachetools<5.0,>=2.0.0 in /usr/local/lib/python3.6/dist-packages (from google-auth<2,>=1.6.3->tensorboard<3,>=2.3.0->tensorflow>=2.1.0->tf2crf) (4.1.1)\n",
+            "Requirement already satisfied: rsa<5,>=3.1.4; python_version >= \"3\" in /usr/local/lib/python3.6/dist-packages (from google-auth<2,>=1.6.3->tensorboard<3,>=2.3.0->tensorflow>=2.1.0->tf2crf) (4.6)\n",
+            "Requirement already satisfied: chardet<4,>=3.0.2 in /usr/local/lib/python3.6/dist-packages (from requests<3,>=2.21.0->tensorboard<3,>=2.3.0->tensorflow>=2.1.0->tf2crf) (3.0.4)\n",
+            "Requirement already satisfied: certifi>=2017.4.17 in /usr/local/lib/python3.6/dist-packages (from requests<3,>=2.21.0->tensorboard<3,>=2.3.0->tensorflow>=2.1.0->tf2crf) (2020.6.20)\n",
+            "Requirement already satisfied: idna<3,>=2.5 in /usr/local/lib/python3.6/dist-packages (from requests<3,>=2.21.0->tensorboard<3,>=2.3.0->tensorflow>=2.1.0->tf2crf) (2.10)\n",
+            "Requirement already satisfied: urllib3!=1.25.0,!=1.25.1,<1.26,>=1.21.1 in /usr/local/lib/python3.6/dist-packages (from requests<3,>=2.21.0->tensorboard<3,>=2.3.0->tensorflow>=2.1.0->tf2crf) (1.24.3)\n",
+            "Requirement already satisfied: importlib-metadata; python_version < \"3.8\" in /usr/local/lib/python3.6/dist-packages (from markdown>=2.6.8->tensorboard<3,>=2.3.0->tensorflow>=2.1.0->tf2crf) (1.7.0)\n",
+            "Requirement already satisfied: requests-oauthlib>=0.7.0 in /usr/local/lib/python3.6/dist-packages (from google-auth-oauthlib<0.5,>=0.4.1->tensorboard<3,>=2.3.0->tensorflow>=2.1.0->tf2crf) (1.3.0)\n",
+            "Requirement already satisfied: pyasn1<0.5.0,>=0.4.6 in /usr/local/lib/python3.6/dist-packages (from pyasn1-modules>=0.2.1->google-auth<2,>=1.6.3->tensorboard<3,>=2.3.0->tensorflow>=2.1.0->tf2crf) (0.4.8)\n",
+            "Requirement already satisfied: zipp>=0.5 in /usr/local/lib/python3.6/dist-packages (from importlib-metadata; python_version < \"3.8\"->markdown>=2.6.8->tensorboard<3,>=2.3.0->tensorflow>=2.1.0->tf2crf) (3.1.0)\n",
+            "Requirement already satisfied: oauthlib>=3.0.0 in /usr/local/lib/python3.6/dist-packages (from requests-oauthlib>=0.7.0->google-auth-oauthlib<0.5,>=0.4.1->tensorboard<3,>=2.3.0->tensorflow>=2.1.0->tf2crf) (3.1.0)\n",
+            "Installing collected packages: tf2crf\n",
+            "Successfully installed tf2crf-0.1.19\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "PBN3cmw9vf0-"
+      },
+      "source": [
+        "import pandas as pd\n",
+        "import numpy as np\n",
+        "import glob\n",
+        "from sklearn.preprocessing import LabelEncoder\n",
+        "from sklearn.utils import class_weight\n",
+        "from sklearn.metrics import classification_report\n",
+        "import tensorflow as tf\n",
+        "from tf2crf import CRF\n",
+        "import tensorflow.keras.backend as K\n",
+        "import tqdm"
+      ],
+      "execution_count": 17,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "OFdyqmw0OLrV",
+        "outputId": "664fef26-ac0b-438e-b305-e46715b30f4c",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 289
+        }
+      },
+      "source": [
+        "!wget https://github.com/allenai/spv2/raw/master/model/glove.6B.100d.txt.gz\n",
+        "!gzip -d glove.6B.100d.txt.gz "
+      ],
+      "execution_count": 3,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "--2020-09-26 11:48:41--  https://github.com/allenai/spv2/raw/master/model/glove.6B.100d.txt.gz\n",
+            "Resolving github.com (github.com)... 140.82.113.4\n",
+            "Connecting to github.com (github.com)|140.82.113.4|:443... connected.\n",
+            "HTTP request sent, awaiting response... 302 Found\n",
+            "Location: https://media.githubusercontent.com/media/allenai/spv2/master/model/glove.6B.100d.txt.gz [following]\n",
+            "--2020-09-26 11:48:42--  https://media.githubusercontent.com/media/allenai/spv2/master/model/glove.6B.100d.txt.gz\n",
+            "Resolving media.githubusercontent.com (media.githubusercontent.com)... 151.101.0.133, 151.101.64.133, 151.101.128.133, ...\n",
+            "Connecting to media.githubusercontent.com (media.githubusercontent.com)|151.101.0.133|:443... connected.\n",
+            "HTTP request sent, awaiting response... 200 OK\n",
+            "Length: 134409071 (128M) [application/octet-stream]\n",
+            "Saving to: ‘glove.6B.100d.txt.gz’\n",
+            "\n",
+            "glove.6B.100d.txt.g 100%[===================>] 128.18M  96.2MB/s    in 1.3s    \n",
+            "\n",
+            "2020-09-26 11:48:48 (96.2 MB/s) - ‘glove.6B.100d.txt.gz’ saved [134409071/134409071]\n",
+            "\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "WluL7pw0OfKy",
+        "outputId": "58d5ec73-99dd-4cce-ad97-8bfc2af71488",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 34
+        }
+      },
+      "source": [
+        "embeddings_index = {}\n",
+        "f = open(\"glove.6B.100d.txt\")\n",
+        "for line in f:\n",
+        "  values = line.split()\n",
+        "  word = values[0]\n",
+        "  coefs = np.asarray(values[1:], dtype=\"float32\")\n",
+        "  embeddings_index[word] = coefs\n",
+        "f.close()\n",
+        "\n",
+        "print(\"Found %s word vectors\"%(len(embeddings_index)))"
+      ],
+      "execution_count": 15,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Found 400000 word vectors\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "9d7c0JmORNlk"
+      },
+      "source": [
+        ""
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "skbVmkYyxRtb"
+      },
+      "source": [
+        "def read_data(filename):\n",
+        "    df = pd.read_csv(filename, header=None)\n",
+        "    df[\"text\"] = df[0].str.split(\"\\t\").apply(lambda x: x[0])\n",
+        "    df[\"labels\"] = df[0].str.split(\"\\t\").apply(lambda x: x[1].split())\n",
+        "    df = df.drop(0, axis=1)\n",
+        "    df[\"intent\"] = df[\"labels\"].apply(lambda x: x.pop())\n",
+        "    df[\"labels\"] = df[\"labels\"].apply(lambda x: x + [\"O\"])\n",
+        "    return df"
+      ],
+      "execution_count": 18,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "k5a1AARFxnsE"
+      },
+      "source": [
+        "DATA_PATH = \"drive/My Drive/interviews/Miko/\""
+      ],
+      "execution_count": 20,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "-YKAPFzkvBYF",
+        "outputId": "a9728253-9574-43ae-8e34-59866ae50b4b",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 102
+        }
+      },
+      "source": [
+        "files = glob.glob(DATA_PATH + \"*\")\n",
+        "files"
+      ],
+      "execution_count": 21,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "['drive/My Drive/interviews/Miko/atis.test.w-intent.iob (2) (2) (2).txt',\n",
+              " 'drive/My Drive/interviews/Miko/atis-2.train.w-intent.iob (3) (2) (2).txt',\n",
+              " 'drive/My Drive/interviews/Miko/ner_model_weights.pickle.index',\n",
+              " 'drive/My Drive/interviews/Miko/ner_model_weights.pickle.data-00000-of-00001',\n",
+              " 'drive/My Drive/interviews/Miko/checkpoint']"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 21
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "AcVeVPQ3x3Kf"
+      },
+      "source": [
+        "train_df = read_data(files[1])\n",
+        "test_df = read_data(files[0])"
+      ],
+      "execution_count": 22,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "M7XCN57jx-VU",
+        "outputId": "96e1dd7a-ed1e-4758-a088-f1fa6124a226",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 34
+        }
+      },
+      "source": [
+        "train_df[\"text\"].str.split().str.len().max()"
+      ],
+      "execution_count": 23,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "48"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 23
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "FBbwD7Kkvda7"
+      },
+      "source": [
+        "tokenizer = tf.keras.preprocessing.text.Tokenizer(oov_token=\"OOV\")\n",
+        "tokenizer.fit_on_texts(train_df[\"text\"].tolist())"
+      ],
+      "execution_count": 24,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "LmtHj16DRayg",
+        "outputId": "39923d90-0767-4310-c8bd-5a76cee63a6d",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 34
+        }
+      },
+      "source": [
+        "word_index = tokenizer.word_index\n",
+        "embedding_matrix = np.zeros((len(word_index) + 1, 100))\n",
+        "for word, i in tqdm.tqdm(word_index.items()):\n",
+        "    embedding_vector = embeddings_index.get(word)\n",
+        "    if embedding_vector is not None:\n",
+        "      embedding_matrix[i] = embedding_vector"
+      ],
+      "execution_count": 27,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 870/870 [00:00<00:00, 239015.16it/s]\n"
+          ],
+          "name": "stderr"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "5A40IRtVx2D6",
+        "outputId": "d7b7317a-ed56-448d-d8d9-183610f2f859",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 34
+        }
+      },
+      "source": [
+        "labels = list(set(sum(train_df[\"labels\"].tolist(), []))) + list(set(sum(test_df[\"labels\"].tolist(), [])))\n",
+        "\n",
+        "le = LabelEncoder()\n",
+        "le.fit(labels + [\"PAD\"])"
+      ],
+      "execution_count": 28,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "LabelEncoder()"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 28
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "h9EPriXXkHn8",
+        "outputId": "f43e279a-1c59-45a0-8ea8-5da19709ac4e",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 34
+        }
+      },
+      "source": [
+        "n_classes = len(le.classes_)\n",
+        "n_classes"
+      ],
+      "execution_count": 29,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "127"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 29
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "_I_n5pgGjI93"
+      },
+      "source": [
+        "def prepare_model_input(texts, labels):\n",
+        "  # text\n",
+        "  seq = tokenizer.texts_to_sequences(texts)\n",
+        "  seq = tf.keras.preprocessing.sequence.pad_sequences(seq, 48)\n",
+        "\n",
+        "  # labels\n",
+        "  labels = list(map(le.transform, labels))\n",
+        "  labels = tf.keras.preprocessing.sequence.pad_sequences(labels, 48, value=n_classes-1)\n",
+        "  return seq, labels"
+      ],
+      "execution_count": 30,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "4WppM1Tlvhde"
+      },
+      "source": [
+        "train_seq, train_labels = prepare_model_input(train_df[\"text\"].tolist(), labels=train_df[\"labels\"].tolist())"
+      ],
+      "execution_count": 31,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "N67yb0tRCGUi"
+      },
+      "source": [
+        "test_seq, test_labels = prepare_model_input(test_df[\"text\"].tolist(), labels=test_df[\"labels\"].tolist())"
+      ],
+      "execution_count": 32,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "SIRHZQM4HYv9",
+        "outputId": "ee05328e-efc0-419f-e84d-b0a3ed6862e5",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 34
+        }
+      },
+      "source": [
+        "train_seq.shape, train_labels.shape"
+      ],
+      "execution_count": 33,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "((4478, 48), (4478, 48))"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 33
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "xdEQDqde7gcG",
+        "outputId": "94fdb1f9-5010-4043-f5e6-0db11d41eae3",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 34
+        }
+      },
+      "source": [
+        "train_seq.shape, train_labels.shape"
+      ],
+      "execution_count": 56,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "((4478, 48), (4478, 48))"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 56
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "ksVS1T4s-PKX",
+        "outputId": "79fb421a-41c2-4f8f-f1e6-dc50546e0a9e",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 119
+        }
+      },
+      "source": [
+        "y1 = set(sum(train_df[\"labels\"].tolist(), []))\n",
+        "y2 = set(sum(test_df[\"labels\"].tolist(), []))\n",
+        "y2.difference(y1)"
+      ],
+      "execution_count": 57,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "{'B-booking_class',\n",
+              " 'B-compartment',\n",
+              " 'B-flight',\n",
+              " 'B-stoploc.airport_code',\n",
+              " 'I-flight_number',\n",
+              " 'I-state_name'}"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 57
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "JBFW-NjMmEXW"
+      },
+      "source": [
+        "y = sum(np.array(list(map(le.inverse_transform, train_labels))).tolist() + [list(y2.difference(y1))], []) "
+      ],
+      "execution_count": 38,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "x_rYI3Q8dtI4"
+      },
+      "source": [
+        "class_weights = class_weight.compute_class_weight(\"balanced\", le.classes_, y)\n",
+        "class_weights = dict(enumerate(class_weights))\n",
+        "class_weights[126] = 0"
+      ],
+      "execution_count": 39,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "rydy4Lr8WETL"
+      },
+      "source": [
+        ""
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "uSsq3eqlV_Rk"
+      },
+      "source": [
+        "Model Architecture"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "ueKU9fc-wj9h",
+        "outputId": "2856b600-2484-4d5e-81cc-15b1fa3284e1",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 394
+        }
+      },
+      "source": [
+        "model = tf.keras.Sequential()\n",
+        "model.add(tf.keras.layers.Embedding(input_dim=len(tokenizer.word_index)+1, \n",
+        "                                    output_dim=100, input_length=48,\n",
+        "                                    weights = [embedding_matrix],\n",
+        "                                    trainable=False))\n",
+        "model.add(tf.keras.layers.Dropout(0.4))\n",
+        "model.add(tf.keras.layers.Bidirectional(\n",
+        "    tf.keras.layers.LSTM(100, return_sequences=True, recurrent_dropout=0.2)))\n",
+        "model.add(tf.keras.layers.BatchNormalization())\n",
+        "crf = CRF(sparse_target=True, dtype='float32')\n",
+        "model.add(crf)\n",
+        "model.summary()"
+      ],
+      "execution_count": 66,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "WARNING:tensorflow:Layer lstm_7 will not use cuDNN kernel since it doesn't meet the cuDNN kernel criteria. It will use generic GPU kernel as fallback when running on GPU\n",
+            "WARNING:tensorflow:Layer lstm_7 will not use cuDNN kernel since it doesn't meet the cuDNN kernel criteria. It will use generic GPU kernel as fallback when running on GPU\n",
+            "WARNING:tensorflow:Layer lstm_7 will not use cuDNN kernel since it doesn't meet the cuDNN kernel criteria. It will use generic GPU kernel as fallback when running on GPU\n",
+            "Model: \"sequential_7\"\n",
+            "_________________________________________________________________\n",
+            "Layer (type)                 Output Shape              Param #   \n",
+            "=================================================================\n",
+            "embedding_7 (Embedding)      (None, 48, 100)           87100     \n",
+            "_________________________________________________________________\n",
+            "dropout_7 (Dropout)          (None, 48, 100)           0         \n",
+            "_________________________________________________________________\n",
+            "bidirectional_7 (Bidirection (None, 48, 200)           160800    \n",
+            "_________________________________________________________________\n",
+            "batch_normalization_4 (Batch (None, 48, 200)           800       \n",
+            "_________________________________________________________________\n",
+            "crf_4 (CRF)                  (None, 48)                40000     \n",
+            "=================================================================\n",
+            "Total params: 288,700\n",
+            "Trainable params: 201,200\n",
+            "Non-trainable params: 87,500\n",
+            "_________________________________________________________________\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "15D8eObW6d4I"
+      },
+      "source": [
+        "model.compile(optimizer=\"Adam\", loss=crf.loss, metrics=[crf.accuracy])"
+      ],
+      "execution_count": 67,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "7YY0R2cC3iN-",
+        "outputId": "7b9092b6-4cac-4a0f-8b0e-05e225d81c75",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 377
+        }
+      },
+      "source": [
+        "with tf.device(\"/device:GPU:0\"):\n",
+        "  model_hist = model.fit(train_seq, train_labels,\n",
+        "                         batch_size=32, epochs=10, \n",
+        "                         validation_split=0.2, shuffle=True,\n",
+        "                         class_weight = class_weights\n",
+        "                         )\n"
+      ],
+      "execution_count": 68,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Epoch 1/10\n",
+            "112/112 [==============================] - 45s 400ms/step - loss: 11168.1318 - accuracy: 0.0000e+00 - val_loss: 205.7381 - val_accuracy: 0.7354\n",
+            "Epoch 2/10\n",
+            "112/112 [==============================] - 43s 385ms/step - loss: 8760.9092 - accuracy: 0.0000e+00 - val_loss: 185.3247 - val_accuracy: 0.9506\n",
+            "Epoch 3/10\n",
+            "112/112 [==============================] - 43s 387ms/step - loss: 7247.0542 - accuracy: 0.0000e+00 - val_loss: 173.7075 - val_accuracy: 0.9847\n",
+            "Epoch 4/10\n",
+            "112/112 [==============================] - 43s 387ms/step - loss: 5844.5303 - accuracy: 0.0000e+00 - val_loss: 163.7257 - val_accuracy: 0.9879\n",
+            "Epoch 5/10\n",
+            "112/112 [==============================] - 44s 390ms/step - loss: 4513.3638 - accuracy: 0.0000e+00 - val_loss: 154.0812 - val_accuracy: 0.9893\n",
+            "Epoch 6/10\n",
+            "112/112 [==============================] - 43s 388ms/step - loss: 3274.6887 - accuracy: 0.0000e+00 - val_loss: 144.8455 - val_accuracy: 0.9903\n",
+            "Epoch 7/10\n",
+            "112/112 [==============================] - 43s 388ms/step - loss: 2153.4333 - accuracy: 0.0000e+00 - val_loss: 136.2853 - val_accuracy: 0.9911\n",
+            "Epoch 8/10\n",
+            "112/112 [==============================] - 43s 386ms/step - loss: 1249.2783 - accuracy: 0.0000e+00 - val_loss: 129.1538 - val_accuracy: 0.9921\n",
+            "Epoch 9/10\n",
+            "112/112 [==============================] - 43s 387ms/step - loss: 702.9791 - accuracy: 0.0000e+00 - val_loss: 124.2564 - val_accuracy: 0.9926\n",
+            "Epoch 10/10\n",
+            "112/112 [==============================] - 44s 390ms/step - loss: 452.4322 - accuracy: 0.0000e+00 - val_loss: 121.0182 - val_accuracy: 0.9932\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "jkkeweH6vx9D"
+      },
+      "source": [
+        "model.save_weights(\"drive/My Drive/interviews/Miko/ner_model_weights.pickle\")"
+      ],
+      "execution_count": 69,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "nXccO9H-Do0e"
+      },
+      "source": [
+        ""
+      ],
+      "execution_count": 69,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "ig1c0YCKFcKP"
+      },
+      "source": [
+        "**Train Data Classification Report**"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "TX8vAQymFbs1"
+      },
+      "source": [
+        "train_pred = model.predict(train_seq).astype(int)"
+      ],
+      "execution_count": 70,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "XweoYwSBGkp3",
+        "outputId": "ffda1207-ff7e-4592-abb7-a7041f1588c0",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 1000
+        }
+      },
+      "source": [
+        "print(classification_report(sum(train_labels.tolist(),[]), \n",
+        "                            sum(train_pred.tolist(), []), \n",
+        "                            labels=range(0,125),\n",
+        "                            target_names=le.classes_.tolist()\n",
+        "                            ))"
+      ],
+      "execution_count": 71,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "/usr/local/lib/python3.6/dist-packages/sklearn/metrics/_classification.py:1989: UserWarning: labels size, 125, does not match size of target_names, 127\n",
+            "  .format(len(labels), len(target_names))\n",
+            "/usr/local/lib/python3.6/dist-packages/sklearn/metrics/_classification.py:1272: UndefinedMetricWarning: Precision and F-score are ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.\n",
+            "  _warn_prf(average, modifier, msg_start, len(result))\n",
+            "/usr/local/lib/python3.6/dist-packages/sklearn/metrics/_classification.py:1272: UndefinedMetricWarning: Recall and F-score are ill-defined and being set to 0.0 in labels with no true samples. Use `zero_division` parameter to control this behavior.\n",
+            "  _warn_prf(average, modifier, msg_start, len(result))\n"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "                              precision    recall  f1-score   support\n",
+            "\n",
+            "             B-aircraft_code       0.79      0.87      0.83        30\n",
+            "              B-airline_code       0.95      0.83      0.89       127\n",
+            "              B-airline_name       0.97      0.98      0.97       639\n",
+            "              B-airport_code       1.00      0.80      0.89        25\n",
+            "              B-airport_name       0.67      0.18      0.28        34\n",
+            " B-arrive_date.date_relative       1.00      0.44      0.62         9\n",
+            "      B-arrive_date.day_name       1.00      0.09      0.16        78\n",
+            "    B-arrive_date.day_number       1.00      0.60      0.75        43\n",
+            "    B-arrive_date.month_name       1.00      0.60      0.75        43\n",
+            "B-arrive_date.today_relative       0.00      0.00      0.00         1\n",
+            "      B-arrive_time.end_time       1.00      0.41      0.58        17\n",
+            "    B-arrive_time.period_mod       0.00      0.00      0.00         3\n",
+            " B-arrive_time.period_of_day       0.50      0.02      0.04        51\n",
+            "    B-arrive_time.start_time       0.00      0.00      0.00        18\n",
+            "          B-arrive_time.time       0.92      0.91      0.92       191\n",
+            " B-arrive_time.time_relative       0.95      0.91      0.93       173\n",
+            "             B-booking_class       0.00      0.00      0.00         0\n",
+            "                 B-city_name       0.92      0.81      0.86       204\n",
+            "                B-class_type       0.97      0.98      0.98       194\n",
+            "               B-compartment       0.00      0.00      0.00         0\n",
+            "                   B-connect       1.00      0.03      0.05        36\n",
+            "             B-cost_relative       0.96      0.97      0.97       311\n",
+            "                  B-day_name       0.00      0.00      0.00         3\n",
+            "                B-day_number       0.00      0.00      0.00         2\n",
+            "                 B-days_code       0.00      0.00      0.00         2\n",
+            " B-depart_date.date_relative       0.88      0.89      0.89        76\n",
+            "      B-depart_date.day_name       0.90      0.99      0.94       785\n",
+            "    B-depart_date.day_number       0.94      1.00      0.97       355\n",
+            "    B-depart_date.month_name       0.94      1.00      0.97       339\n",
+            "B-depart_date.today_relative       0.90      0.83      0.86        75\n",
+            "          B-depart_date.year       0.95      0.95      0.95        21\n",
+            "      B-depart_time.end_time       0.74      0.96      0.84        24\n",
+            "    B-depart_time.period_mod       0.79      0.86      0.82        35\n",
+            " B-depart_time.period_of_day       0.84      0.98      0.90       521\n",
+            "    B-depart_time.start_time       0.72      0.96      0.82        24\n",
+            "          B-depart_time.time       0.93      0.96      0.95       327\n",
+            " B-depart_time.time_relative       0.94      0.93      0.94       283\n",
+            "                   B-economy       0.97      1.00      0.99        34\n",
+            "               B-fare_amount       1.00      0.98      0.99        46\n",
+            "           B-fare_basis_code       0.89      0.98      0.93        63\n",
+            "                    B-flight       0.00      0.00      0.00         0\n",
+            "               B-flight_days       1.00      1.00      1.00        37\n",
+            "                B-flight_mod       0.94      0.89      0.91       289\n",
+            "             B-flight_number       0.97      0.92      0.95        78\n",
+            "               B-flight_stop       0.99      0.86      0.92       143\n",
+            "               B-flight_time       0.76      0.47      0.58        59\n",
+            "      B-fromloc.airport_code       0.00      0.00      0.00        14\n",
+            "      B-fromloc.airport_name       0.69      0.84      0.75        73\n",
+            "         B-fromloc.city_name       0.98      0.98      0.98      3892\n",
+            "        B-fromloc.state_code       0.98      0.98      0.98        41\n",
+            "        B-fromloc.state_name       0.74      0.83      0.78        35\n",
+            "                      B-meal       0.96      1.00      0.98        43\n",
+            "                 B-meal_code       0.00      0.00      0.00         6\n",
+            "          B-meal_description       0.98      1.00      0.99        49\n",
+            "                       B-mod       0.00      0.00      0.00        29\n",
+            "                B-month_name       0.00      0.00      0.00         2\n",
+            "                        B-or       0.90      0.97      0.93        59\n",
+            "             B-period_of_day       0.00      0.00      0.00         3\n",
+            "          B-restriction_code       1.00      0.86      0.92        21\n",
+            " B-return_date.date_relative       0.00      0.00      0.00         7\n",
+            "      B-return_date.day_name       0.00      0.00      0.00         1\n",
+            "    B-return_date.day_number       0.00      0.00      0.00         2\n",
+            "    B-return_date.month_name       0.00      0.00      0.00         2\n",
+            "B-return_date.today_relative       0.00      0.00      0.00         1\n",
+            "    B-return_time.period_mod       0.00      0.00      0.00         2\n",
+            " B-return_time.period_of_day       0.00      0.00      0.00         2\n",
+            "                B-round_trip       0.99      0.96      0.98       323\n",
+            "                B-state_code       0.00      0.00      0.00         7\n",
+            "                B-state_name       0.00      0.00      0.00         1\n",
+            "      B-stoploc.airport_code       0.00      0.00      0.00         0\n",
+            "      B-stoploc.airport_name       0.00      0.00      0.00         1\n",
+            "         B-stoploc.city_name       0.97      0.94      0.96       218\n",
+            "        B-stoploc.state_code       0.00      0.00      0.00         5\n",
+            "                      B-time       0.00      0.00      0.00         2\n",
+            "             B-time_relative       0.00      0.00      0.00         1\n",
+            "            B-today_relative       0.00      0.00      0.00         2\n",
+            "        B-toloc.airport_code       1.00      0.12      0.22        16\n",
+            "        B-toloc.airport_name       1.00      0.14      0.25        35\n",
+            "           B-toloc.city_name       0.97      0.99      0.98      3919\n",
+            "        B-toloc.country_name       0.00      0.00      0.00         3\n",
+            "          B-toloc.state_code       0.86      1.00      0.93        76\n",
+            "          B-toloc.state_name       0.96      0.94      0.95        70\n",
+            "            B-transport_type       0.94      0.40      0.56        40\n",
+            "              I-airline_name       0.99      0.99      0.99       379\n",
+            "              I-airport_name       0.82      0.36      0.50        50\n",
+            "    I-arrive_date.day_number       0.00      0.00      0.00         6\n",
+            "      I-arrive_time.end_time       1.00      0.44      0.61        16\n",
+            " I-arrive_time.period_of_day       0.00      0.00      0.00         3\n",
+            "    I-arrive_time.start_time       0.00      0.00      0.00         8\n",
+            "          I-arrive_time.time       0.93      0.93      0.93       149\n",
+            " I-arrive_time.time_relative       0.00      0.00      0.00         2\n",
+            "                 I-city_name       0.96      0.49      0.65        45\n",
+            "                I-class_type       0.96      1.00      0.98       164\n",
+            "             I-cost_relative       0.98      0.86      0.91        49\n",
+            "    I-depart_date.day_number       0.95      1.00      0.97       107\n",
+            "I-depart_date.today_relative       0.00      0.00      0.00        12\n",
+            "      I-depart_time.end_time       0.75      0.88      0.81        17\n",
+            " I-depart_time.period_of_day       0.00      0.00      0.00         5\n",
+            "    I-depart_time.start_time       1.00      0.67      0.80        12\n",
+            "          I-depart_time.time       0.90      0.99      0.94       264\n",
+            " I-depart_time.time_relative       0.00      0.00      0.00         2\n",
+            "                   I-economy       0.88      0.70      0.78        10\n",
+            "               I-fare_amount       1.00      1.00      1.00        45\n",
+            "           I-fare_basis_code       0.00      0.00      0.00         1\n",
+            "                I-flight_mod       0.00      0.00      0.00         9\n",
+            "             I-flight_number       0.00      0.00      0.00         0\n",
+            "               I-flight_stop       0.00      0.00      0.00        15\n",
+            "               I-flight_time       0.00      0.00      0.00        26\n",
+            "      I-fromloc.airport_name       0.54      0.95      0.69        97\n",
+            "         I-fromloc.city_name       0.99      0.94      0.97       632\n",
+            "        I-fromloc.state_name       0.00      0.00      0.00         8\n",
+            "                 I-meal_code       0.00      0.00      0.00         4\n",
+            "          I-meal_description       0.00      0.00      0.00         1\n",
+            "          I-restriction_code       0.92      0.92      0.92        13\n",
+            " I-return_date.date_relative       0.00      0.00      0.00         2\n",
+            "I-return_date.today_relative       0.00      0.00      0.00         2\n",
+            "                I-round_trip       0.95      0.99      0.97       314\n",
+            "                I-state_name       0.00      0.00      0.00         0\n",
+            "         I-stoploc.city_name       1.00      0.12      0.22        41\n",
+            "                      I-time       0.00      0.00      0.00         1\n",
+            "            I-today_relative       0.00      0.00      0.00         3\n",
+            "        I-toloc.airport_name       1.00      0.11      0.20        46\n",
+            "           I-toloc.city_name       0.90      1.00      0.95       987\n",
+            "          I-toloc.state_name       0.00      0.00      0.00        12\n",
+            "            I-transport_type       1.00      0.19      0.32        21\n",
+            "\n",
+            "                   micro avg       0.94      0.93      0.94     18431\n",
+            "                   macro avg       0.54      0.46      0.47     18431\n",
+            "                weighted avg       0.93      0.93      0.93     18431\n",
+            "\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "Mwxndd_GFW38"
+      },
+      "source": [
+        "**Test Data Classfication Report**"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "AGUGL5tSSvDu"
+      },
+      "source": [
+        "test_pred = model.predict(test_seq)"
+      ],
+      "execution_count": 72,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "3DGkYvRsCxsA",
+        "outputId": "17244ea6-5cf4-452b-999f-6e911de8faca",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 1000
+        }
+      },
+      "source": [
+        "print(classification_report(sum(test_labels.tolist(),[]), \n",
+        "                            sum(test_pred.tolist(), []), \n",
+        "                            labels=range(0,125),\n",
+        "                            target_names=le.classes_.tolist()\n",
+        "                            ))"
+      ],
+      "execution_count": 73,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "                              precision    recall  f1-score   support\n",
+            "\n",
+            "             B-aircraft_code       1.00      0.52      0.68        33\n",
+            "              B-airline_code       1.00      0.53      0.69        34\n",
+            "              B-airline_name       0.90      0.94      0.92       101\n",
+            "              B-airport_code       0.00      0.00      0.00         9\n",
+            "              B-airport_name       0.00      0.00      0.00        21\n",
+            " B-arrive_date.date_relative       0.00      0.00      0.00         2\n",
+            "      B-arrive_date.day_name       0.00      0.00      0.00        11\n",
+            "    B-arrive_date.day_number       1.00      0.17      0.29         6\n",
+            "    B-arrive_date.month_name       1.00      0.17      0.29         6\n",
+            "B-arrive_date.today_relative       0.00      0.00      0.00         0\n",
+            "      B-arrive_time.end_time       0.00      0.00      0.00         8\n",
+            "    B-arrive_time.period_mod       0.00      0.00      0.00         0\n",
+            " B-arrive_time.period_of_day       0.00      0.00      0.00         6\n",
+            "    B-arrive_time.start_time       0.00      0.00      0.00         8\n",
+            "          B-arrive_time.time       0.86      0.91      0.89        34\n",
+            " B-arrive_time.time_relative       0.90      0.84      0.87        31\n",
+            "             B-booking_class       0.00      0.00      0.00         1\n",
+            "                 B-city_name       0.80      0.35      0.49        57\n",
+            "                B-class_type       0.89      1.00      0.94        24\n",
+            "               B-compartment       0.00      0.00      0.00         1\n",
+            "                   B-connect       0.00      0.00      0.00         6\n",
+            "             B-cost_relative       0.95      0.95      0.95        37\n",
+            "                  B-day_name       0.00      0.00      0.00         2\n",
+            "                B-day_number       0.00      0.00      0.00         0\n",
+            "                 B-days_code       0.00      0.00      0.00         1\n",
+            " B-depart_date.date_relative       0.85      1.00      0.92        17\n",
+            "      B-depart_date.day_name       0.94      1.00      0.97       212\n",
+            "    B-depart_date.day_number       0.92      1.00      0.96        55\n",
+            "    B-depart_date.month_name       0.92      1.00      0.96        56\n",
+            "B-depart_date.today_relative       1.00      0.56      0.71         9\n",
+            "          B-depart_date.year       1.00      0.33      0.50         3\n",
+            "      B-depart_time.end_time       0.30      1.00      0.46         3\n",
+            "    B-depart_time.period_mod       0.83      1.00      0.91         5\n",
+            " B-depart_time.period_of_day       0.91      0.89      0.90       130\n",
+            "    B-depart_time.start_time       0.30      1.00      0.46         3\n",
+            "          B-depart_time.time       0.85      0.96      0.90        57\n",
+            " B-depart_time.time_relative       0.97      0.91      0.94        65\n",
+            "                   B-economy       1.00      1.00      1.00         6\n",
+            "               B-fare_amount       1.00      1.00      1.00         2\n",
+            "           B-fare_basis_code       0.89      1.00      0.94        17\n",
+            "                    B-flight       0.00      0.00      0.00         1\n",
+            "               B-flight_days       1.00      1.00      1.00        10\n",
+            "                B-flight_mod       0.87      0.83      0.85        24\n",
+            "             B-flight_number       0.55      0.55      0.55        11\n",
+            "               B-flight_stop       1.00      1.00      1.00        21\n",
+            "               B-flight_time       0.50      1.00      0.67         1\n",
+            "      B-fromloc.airport_code       0.00      0.00      0.00         5\n",
+            "      B-fromloc.airport_name       0.24      0.42      0.30        12\n",
+            "         B-fromloc.city_name       0.96      0.99      0.98       704\n",
+            "        B-fromloc.state_code       1.00      1.00      1.00        23\n",
+            "        B-fromloc.state_name       0.86      0.71      0.77        17\n",
+            "                      B-meal       0.94      1.00      0.97        16\n",
+            "                 B-meal_code       0.00      0.00      0.00         1\n",
+            "          B-meal_description       1.00      0.90      0.95        10\n",
+            "                       B-mod       0.00      0.00      0.00         2\n",
+            "                B-month_name       0.00      0.00      0.00         0\n",
+            "                        B-or       0.60      1.00      0.75         3\n",
+            "             B-period_of_day       0.00      0.00      0.00         4\n",
+            "          B-restriction_code       1.00      0.75      0.86         4\n",
+            " B-return_date.date_relative       0.00      0.00      0.00         3\n",
+            "      B-return_date.day_name       0.00      0.00      0.00         2\n",
+            "    B-return_date.day_number       0.00      0.00      0.00         0\n",
+            "    B-return_date.month_name       0.00      0.00      0.00         0\n",
+            "B-return_date.today_relative       0.00      0.00      0.00         0\n",
+            "    B-return_time.period_mod       0.00      0.00      0.00         0\n",
+            " B-return_time.period_of_day       0.00      0.00      0.00         0\n",
+            "                B-round_trip       1.00      0.96      0.98        73\n",
+            "                B-state_code       0.00      0.00      0.00         1\n",
+            "                B-state_name       0.00      0.00      0.00         9\n",
+            "      B-stoploc.airport_code       0.00      0.00      0.00         1\n",
+            "      B-stoploc.airport_name       0.00      0.00      0.00         0\n",
+            "         B-stoploc.city_name       0.93      0.70      0.80        20\n",
+            "        B-stoploc.state_code       0.00      0.00      0.00         0\n",
+            "                      B-time       0.00      0.00      0.00         0\n",
+            "             B-time_relative       0.00      0.00      0.00         0\n",
+            "            B-today_relative       0.00      0.00      0.00         0\n",
+            "        B-toloc.airport_code       0.00      0.00      0.00         4\n",
+            "        B-toloc.airport_name       0.00      0.00      0.00         3\n",
+            "           B-toloc.city_name       0.94      0.99      0.97       716\n",
+            "        B-toloc.country_name       0.00      0.00      0.00         1\n",
+            "          B-toloc.state_code       0.95      1.00      0.97        18\n",
+            "          B-toloc.state_name       0.86      0.89      0.88        28\n",
+            "            B-transport_type       1.00      0.50      0.67        10\n",
+            "              I-airline_name       1.00      0.89      0.94        65\n",
+            "              I-airport_name       1.00      0.07      0.13        29\n",
+            "    I-arrive_date.day_number       0.00      0.00      0.00         0\n",
+            "      I-arrive_time.end_time       0.00      0.00      0.00         8\n",
+            " I-arrive_time.period_of_day       0.00      0.00      0.00         0\n",
+            "    I-arrive_time.start_time       0.00      0.00      0.00         1\n",
+            "          I-arrive_time.time       0.89      0.91      0.90        35\n",
+            " I-arrive_time.time_relative       0.00      0.00      0.00         4\n",
+            "                 I-city_name       1.00      0.13      0.24        30\n",
+            "                I-class_type       0.89      1.00      0.94        17\n",
+            "             I-cost_relative       1.00      0.67      0.80         3\n",
+            "    I-depart_date.day_number       1.00      1.00      1.00        15\n",
+            "I-depart_date.today_relative       0.00      0.00      0.00         0\n",
+            "      I-depart_time.end_time       0.22      0.67      0.33         3\n",
+            " I-depart_time.period_of_day       0.00      0.00      0.00         1\n",
+            "    I-depart_time.start_time       0.00      0.00      0.00         1\n",
+            "          I-depart_time.time       0.82      0.96      0.88        52\n",
+            " I-depart_time.time_relative       0.00      0.00      0.00         1\n",
+            "                   I-economy       0.00      0.00      0.00         0\n",
+            "               I-fare_amount       1.00      1.00      1.00         2\n",
+            "           I-fare_basis_code       0.00      0.00      0.00         0\n",
+            "                I-flight_mod       0.00      0.00      0.00         6\n",
+            "             I-flight_number       0.00      0.00      0.00         1\n",
+            "               I-flight_stop       0.00      0.00      0.00         0\n",
+            "               I-flight_time       0.00      0.00      0.00         1\n",
+            "      I-fromloc.airport_name       0.33      0.87      0.48        15\n",
+            "         I-fromloc.city_name       0.97      0.96      0.97       177\n",
+            "        I-fromloc.state_name       0.00      0.00      0.00         1\n",
+            "                 I-meal_code       0.00      0.00      0.00         0\n",
+            "          I-meal_description       0.00      0.00      0.00         0\n",
+            "          I-restriction_code       1.00      0.67      0.80         3\n",
+            " I-return_date.date_relative       0.00      0.00      0.00         3\n",
+            "I-return_date.today_relative       0.00      0.00      0.00         0\n",
+            "                I-round_trip       0.97      0.99      0.98        71\n",
+            "                I-state_name       0.00      0.00      0.00         1\n",
+            "         I-stoploc.city_name       0.00      0.00      0.00        10\n",
+            "                      I-time       0.00      0.00      0.00         0\n",
+            "            I-today_relative       0.00      0.00      0.00         0\n",
+            "        I-toloc.airport_name       0.00      0.00      0.00         3\n",
+            "           I-toloc.city_name       0.85      1.00      0.92       265\n",
+            "          I-toloc.state_name       0.00      0.00      0.00         1\n",
+            "            I-transport_type       0.00      0.00      0.00         1\n",
+            "\n",
+            "                   micro avg       0.91      0.89      0.90      3663\n",
+            "                   macro avg       0.41      0.38      0.37      3663\n",
+            "                weighted avg       0.89      0.89      0.87      3663\n",
+            "\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "/usr/local/lib/python3.6/dist-packages/sklearn/metrics/_classification.py:1989: UserWarning: labels size, 125, does not match size of target_names, 127\n",
+            "  .format(len(labels), len(target_names))\n",
+            "/usr/local/lib/python3.6/dist-packages/sklearn/metrics/_classification.py:1272: UndefinedMetricWarning: Precision and F-score are ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.\n",
+            "  _warn_prf(average, modifier, msg_start, len(result))\n",
+            "/usr/local/lib/python3.6/dist-packages/sklearn/metrics/_classification.py:1272: UndefinedMetricWarning: Recall and F-score are ill-defined and being set to 0.0 in labels with no true samples. Use `zero_division` parameter to control this behavior.\n",
+            "  _warn_prf(average, modifier, msg_start, len(result))\n"
+          ],
+          "name": "stderr"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "C_FTkySqC-rf"
+      },
+      "source": [
+        ""
+      ],
+      "execution_count": null,
+      "outputs": []
+    }
+  ]
+}
